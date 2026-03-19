@@ -23,6 +23,11 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
+  web:
+    generate: true
+    image_path: "assets/icon.png"
+    background_color: "#FFFFFF"
+    theme_color: "#005596" # Une couleur bleue "aéro" par exemple
   image_path: "assets/images/icon.png"
   min_sdk_android: 21 # requis pour certaines versions
   min_sdk_ios: 10 # requis pour certaines versions
