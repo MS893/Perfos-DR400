@@ -1,37 +1,50 @@
-enum CalculationStatus { exact, interpolated, extrapolated, noData }
+/// État du calcul de performance.
+enum CalculationStatus { 
+  exact,        // Valeur trouvée directement dans les tables
+  interpolated, // Valeur calculée par interpolation entre deux points
+  extrapolated, // Valeur calculée en dehors des limites des tables (donnée indicative)
+  noData        // Aucune donnée disponible pour ce calcul
+}
 
+/// Représente un couple (roulement au sol, distance de passage des 50ft/15m).
 class PerformanceEntry {
-  final double roll;
-  final double distance;
+  final double roll;     // Distance de roulement au sol
+  final double distance; // Distance totale pour franchir un obstacle de 50ft
   PerformanceEntry(this.roll, this.distance);
 }
 
+/// Résultat d'un calcul incluant les valeurs de performance et la fiabilité du calcul.
 class PerformanceResult {
   final PerformanceEntry entry;
   final CalculationStatus status;
   PerformanceResult(this.entry, this.status);
 }
 
-// Classe de base pour tous les avions
+/// Classe de base abstraite définissant le comportement commun à tous les types d'avions.
 abstract class Aircraft {
-  final AircraftPerformance landing;
+  final AircraftPerformance landing; // Performances à l'atterrissage (communes)
   Aircraft({required this.landing});
 
-  // Méthode unifiée pour obtenir les perfs de décollage selon la piste
+  /// Méthode unifiée pour obtenir les performances de décollage selon les conditions.
   PerformanceResult getTakeoffPerformance(double altitude, double temp, double mass, String runwayType);
   
+  /// Calcul du facteur correctif lié au vent pour le décollage.
   double calculateWindFactorTakeoff(double wind);
+  
+  /// Calcul du facteur correctif lié au vent pour l'atterrissage.
   double calculateWindFactorLanding(double wind);
   
+  /// Détermine si le vent est dans les limites certifiées (souvent 30 kt max dans les manuels).
   CalculationStatus getWindStatus(double wind) {
     return (wind >= 0 && wind <= 30) ? CalculationStatus.exact : CalculationStatus.extrapolated;
   }
 }
 
-// Type 1 : Un seul tableau + coefficient (ex: F-GYKX)
+/// Modèle d'avion utilisant un tableau unique pour le décollage avec un coefficient correcteur pour l'herbe.
+/// Exemple : F-GYKX (DR400-120).
 class AircraftWithCoeff extends Aircraft {
   final AircraftPerformance takeoffTable;
-  final double grassFactor;
+  final double grassFactor; // Facteur multiplicatif pour piste en herbe (par défaut 1.15)
 
   AircraftWithCoeff({
     required this.takeoffTable,
@@ -43,6 +56,8 @@ class AircraftWithCoeff extends Aircraft {
   PerformanceResult getTakeoffPerformance(double altitude, double temp, double mass, String runwayType) {
     PerformanceResult res = takeoffTable.calculate(altitude, temp, mass);
     if (res.status == CalculationStatus.noData) return res;
+    
+    // Application du coefficient correcteur si la piste est en herbe
     if (runwayType == 'Herbe') {
       return PerformanceResult(
         PerformanceEntry(res.entry.roll * grassFactor, res.entry.distance * grassFactor),
@@ -52,13 +67,15 @@ class AircraftWithCoeff extends Aircraft {
     return res;
   }
 
+  // Coefficients de vent basés sur les abaques de performance
   @override
   double calculateWindFactorTakeoff(double wind) {
-    if (wind >= 0) {
+    if (wind >= 0) { // Vent de face : réduit les distances
       if (wind <= 10) return landing.interpolate(wind, 0, 1.0, 10, 0.85);
       if (wind <= 20) return landing.interpolate(wind, 10, 0.85, 20, 0.65);
       return landing.interpolate(wind, 20, 0.65, 30, 0.55);
     }
+    // Vent arrière : augmente les distances (environ +10% par tranche de 2 kt)
     return 1.0 + (wind.abs() / 2.0) * 0.10;
   }
 
@@ -73,7 +90,8 @@ class AircraftWithCoeff extends Aircraft {
   }
 }
 
-// Type 2 : Deux tableaux distincts (ex: F-BVCY)
+/// Modèle d'avion ayant des tableaux de performance distincts pour piste dure et piste en herbe.
+/// Exemple : F-BVCY (DR400-125).
 class AircraftWithMultiTables extends Aircraft {
   final AircraftPerformance takeoffDur;
   final AircraftPerformance takeoffHerbe;
@@ -95,7 +113,6 @@ class AircraftWithMultiTables extends Aircraft {
   @override
   double calculateWindFactorTakeoff(double wind) {
     if (wind >= 0) {
-      // Coefficients spécifiques F-BVCY : 0.78, 0.63, 0.52
       if (wind <= 10) return landing.interpolate(wind, 0, 1.0, 10, 0.78);
       if (wind <= 20) return landing.interpolate(wind, 10, 0.78, 20, 0.63);
       return landing.interpolate(wind, 20, 0.63, 30, 0.52);
@@ -114,39 +131,50 @@ class AircraftWithMultiTables extends Aircraft {
   }
 }
 
+/// Gère le stockage et l'interpolation des données de performance.
+/// Structure : Map<Altitude, Map<DeltaISA, Map<Masse, PerformanceEntry>>>
 class AircraftPerformance {
   final Map<double, Map<double, Map<double, PerformanceEntry>>> data;
   AircraftPerformance(this.data);
 
   bool get isEmpty => data.isEmpty;
 
+  /// Fonction d'interpolation linéaire simple.
   double interpolate(double x, double x0, double y0, double x1, double y1) {
     if (x1 == x0) return y0;
     return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
   }
 
+  /// Trouve les bornes d'interpolation et détermine le statut du calcul.
   MapEntry<List<double>, CalculationStatus> _getBoundsAndStatus(List<double> sortedValues, double target) {
     if (sortedValues.isEmpty) return const MapEntry([0, 0], CalculationStatus.noData);
     if (sortedValues.contains(target)) return MapEntry([target, target], CalculationStatus.exact);
     
+    // Cas de l'extrapolation (cible hors des bornes du tableau)
     if (target < sortedValues.first || target > sortedValues.last) {
       if (sortedValues.length < 2) return MapEntry([sortedValues[0], sortedValues[0]], CalculationStatus.extrapolated);
       return target < sortedValues.first 
           ? MapEntry([sortedValues[0], sortedValues[1]], CalculationStatus.extrapolated)
           : MapEntry([sortedValues[sortedValues.length - 2], sortedValues[sortedValues.length - 1]], CalculationStatus.extrapolated);
     }
+    
+    // Cas de l'interpolation
     int idx = sortedValues.indexWhere((v) => v >= target);
     return MapEntry([sortedValues[idx - 1], sortedValues[idx]], CalculationStatus.interpolated);
   }
 
+  /// Calcul principal réalisant une triple interpolation (Altitude -> Température -> Masse).
   PerformanceResult calculate(double altitude, double temp, double mass) {
     if (isEmpty) return PerformanceResult(PerformanceEntry(0, 0), CalculationStatus.noData);
 
+    // Calcul de l'écart à l'atmosphère standard (ISA)
     double isaTemp = 15 - (2 * altitude / 1000);
     double deltaISA = temp - isaTemp;
+    
     List<double> alts = data.keys.toList()..sort();
     var aRes = _getBoundsAndStatus(alts, altitude);
     
+    // Interpolation sur l'altitude
     var lowAltRes = _interpolateTemp(aRes.key[0], deltaISA, mass);
     var highAltRes = _interpolateTemp(aRes.key[1], deltaISA, mass);
     
@@ -159,6 +187,7 @@ class AircraftPerformance {
     );
   }
 
+  /// Deuxième niveau d'interpolation : Température (Delta ISA).
   PerformanceResult _interpolateTemp(double alt, double deltaISA, double mass) {
     var tempMap = data[alt];
     if (tempMap == null) return PerformanceResult(PerformanceEntry(0, 0), CalculationStatus.noData);
@@ -177,6 +206,7 @@ class AircraftPerformance {
     );
   }
 
+  /// Troisième niveau d'interpolation : Masse.
   PerformanceResult _interpolateMass(double alt, double deltaISA, double mass) {
     var massMap = data[alt]?[deltaISA];
     if (massMap == null) return PerformanceResult(PerformanceEntry(0, 0), CalculationStatus.noData);
@@ -193,6 +223,7 @@ class AircraftPerformance {
     );
   }
 
+  /// Agrège les statuts de calcul pour remonter l'alerte la plus critique (NoData > Extrapolated > Interpolated > Exact).
   CalculationStatus _getWorstStatus(List<CalculationStatus> statuses) {
     if (statuses.contains(CalculationStatus.noData)) return CalculationStatus.noData;
     if (statuses.contains(CalculationStatus.extrapolated)) return CalculationStatus.extrapolated;
@@ -201,7 +232,7 @@ class AircraftPerformance {
   }
 }
 
-// --- DONNÉES F-GYKX ---
+// --- DONNÉES F-GYKX (DR400-120) ---
 final fGykx = AircraftWithCoeff(
   takeoffTable: AircraftPerformance({
     0.0: {
@@ -239,7 +270,7 @@ final fGykx = AircraftWithCoeff(
   }),
 );
 
-// --- DONNÉES F-BVCY ---
+// --- DONNÉES F-BVCY (DR400-125) ---
 final fBvcy = AircraftWithMultiTables(
   takeoffDur: AircraftPerformance({
     0.0: {
@@ -294,7 +325,7 @@ final fBvcy = AircraftWithMultiTables(
   }),
 );
 
-// --- DONNÉES F-HAIX ---
+// --- DONNÉES F-HAIX (DR400-180) ---
 final fHaix = AircraftWithCoeff(
   takeoffTable: AircraftPerformance({
     0.0: {

@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 
+/// Représente une section d'une checklist (ex: "AVANT MISE EN ROUTE").
+/// Peut contenir soit des items directs, soit des sous-sections (accordéons imbriqués).
 class ChecklistSection {
   final String title;
-  final List<ChecklistItem> items;
-  ChecklistSection({required this.title, required this.items});
+  final List<ChecklistItem>? items;
+  final List<ChecklistSection>? subSections;
+  
+  ChecklistSection({required this.title, this.items, this.subSections});
 }
 
+/// Représente un élément individuel d'une checklist.
 class ChecklistItem {
-  final String action;
-  final String status;
-  final bool isCheckable;
-  final Color? color; // Nouveau : permet de définir une couleur spécifique
+  final String action;      // L'action à effectuer ou l'item à vérifier
+  final String status;      // L'état attendu ou la valeur de référence
+  final bool isCheckable;   // Si false, l'item est informatif et n'a pas de case à cocher
+  final Color? color;       // Couleur optionnelle pour mettre en évidence des éléments critiques
   
   ChecklistItem({
     required this.action, 
@@ -20,34 +25,71 @@ class ChecklistItem {
   });
 }
 
+/// Base de données des checklists par immatriculation d'aéronef.
 final Map<String, List<ChecklistSection>> aircraftChecklists = {
+  
+  // --- Checklist pour le F-GYKX ---
   'F-GYKX': [
     ChecklistSection(title: 'AVANT MISE EN ROUTE', items: [
       ChecklistItem(action: 'ATIS (par téléphone ou radio)', status: 'notée'),
-      ChecklistItem(action: 'Verrière', status: 'fermée'),
+      ChecklistItem(action: 'Verrière', status: 'fermée, non verrouillée'),
       ChecklistItem(action: 'Frein de parc', status: 'serré'),
       ChecklistItem(action: 'Sièges', status: 'réglés, verrouillés'),
       ChecklistItem(action: 'Ceintures et harnais', status: 'attachés'),
       ChecklistItem(action: 'Commandes de vol', status: 'libres'),
       ChecklistItem(action: 'Radio MASTER', status: 'OFF'),
-      ChecklistItem(action: 'Robinet essence', status: 'ouvert', color: Colors.red),
+      ChecklistItem(action: 'Robinet essence', status: 'ouvert'),
       ChecklistItem(action: 'Jaugeur essence et autonomie', status: 'vérifié'),
       ChecklistItem(action: 'Horamètre', status: 'noté'),
       ChecklistItem(action: 'Volets', status: 'rentrés'),
+      ChecklistItem(action: 'ATTENTION', status: 'Si le démarreur a été sollicité plus de 10 secondes, attendre au moins une minute avant de procéder à un nouveau démarrage.', isCheckable: false, color: Colors.orange),
     ]),
-    ChecklistSection(title: 'DÉMARRAGE DU MOTEUR', items: [
-      ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
-      ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
-      ChecklistItem(action: 'Mixture', status: 'plein riche (vers le haut)'),
-      ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
-      ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
-      ChecklistItem(action: 'Pompe électrique', status: 'ON'),
-      ChecklistItem(action: 'Manette des gaz', status: '3 injections puis 1/4 en avant'),
-      ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
-      ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+    ChecklistSection(title: 'DÉMARRAGE DU MOTEUR', subSections: [
+      ChecklistSection(title: 'Procédure normale', items: [
+        ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
+        ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
+        ChecklistItem(action: 'Mixture', status: 'plein riche (vers le haut)'),
+        ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
+        ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
+        ChecklistItem(action: 'Pompe électrique', status: 'ON'),
+        ChecklistItem(action: 'Manette des gaz', status: '5 injections puis 1/4 en avant'),
+        ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
+        ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+      ]),
+      ChecklistSection(title: 'Procédure moteur chaud', items: [
+        ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
+        ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
+        ChecklistItem(action: 'Mixture', status: 'plein riche (vers le haut)'),
+        ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
+        ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
+        ChecklistItem(action: 'Pompe électrique', status: 'ON'),
+        ChecklistItem(action: 'Manette des gaz', status: '3 injections MAX puis 1/2 en avant'),
+        ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
+        ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+      ]),
+      ChecklistSection(title: 'Procédure par temps froid', items: [
+        ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
+        ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
+        ChecklistItem(action: 'Mixture', status: 'plein riche (vers le haut)'),
+        ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
+        ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
+        ChecklistItem(action: 'Pompe électrique', status: 'ON'),
+        ChecklistItem(action: 'Manette des gaz', status: '5 injections puis 1/4 en avant'),
+        ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
+        ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+        ChecklistItem(action: 'Soutien régime', status: 'injections successives jusqu’à 900-1000 tr/min', color: Colors.orange),
+      ]),
+      ChecklistSection(title: 'Moteur NOYÉ', items: [
+        ChecklistItem(action: 'Pompe électrique', status: 'arrêt'),
+        ChecklistItem(action: 'Mixture', status: 'étouffoir (vers le bas)', color: Colors.red),
+        ChecklistItem(action: 'Manette des gaz', status: 'plein gaz (pousser)', color: Colors.orange),
+        ChecklistItem(action: 'Démarreur', status: 'actionné quelques secondes'),
+        ChecklistItem(action: 'Si démarrage', status: 'Mixture RICHE', color: Colors.green),
+        ChecklistItem(action: 'Suite', status: 'Reprendre procédure normale sans injection'),
+      ]),
     ]),
     ChecklistSection(title: 'APRÈS MISE EN ROUTE', items: [
-      ChecklistItem(action: 'Pression d’huile (20s max)', status: 'plage verte', color: Colors.red),
+      ChecklistItem(action: 'Pression d’huile (dans les 20s MAX)', status: 'plage verte', color: Colors.red),
       ChecklistItem(action: 'Sélecteur magnétos', status: 'L+R (Both)', color: Colors.orange),
       ChecklistItem(action: 'Régime', status: '1200 tr/min'),
       ChecklistItem(action: 'Alternateur', status: 'ON'),
@@ -67,7 +109,7 @@ final Map<String, List<ChecklistSection>> aircraftChecklists = {
       ChecklistItem(action: 'Frein de parc', status: 'desserré'),
       ChecklistItem(action: 'Freins', status: 'essayés et symétriques', color: Colors.orange),
       ChecklistItem(action: 'Gyroscopes et bille', status: 'vérifiés'),
-      ChecklistItem(action: 'ATTENTION', status: 'Éviter de dépasser 1200 tr/min tant que la température d’huile reste en plage jaune', isCheckable: false, color: Colors.orange),
+      ChecklistItem(action: 'ATTENTION', status: 'Éviter de dépasser 1200 tr/min tant que la température d’huile reste en plage jaune.', isCheckable: false, color: Colors.orange),
     ]),
     ChecklistSection(title: 'POINT FIXE', items: [
       ChecklistItem(action: 'Frein de parc', status: 'serré'),
@@ -127,6 +169,8 @@ final Map<String, List<ChecklistSection>> aircraftChecklists = {
       ChecklistItem(action: 'Frein de parc', status: 'desserré (si possible)'),
     ]),
   ],
+
+  // --- Checklist pour le F-BVCY ---
   'F-BVCY': [
     ChecklistSection(title: 'AVANT MISE EN ROUTE', items: [
       ChecklistItem(action: 'ATIS (par téléphone ou radio)', status: 'notée'),
@@ -141,16 +185,49 @@ final Map<String, List<ChecklistSection>> aircraftChecklists = {
       ChecklistItem(action: 'Horamètre', status: 'noté'),
       ChecklistItem(action: 'Volets', status: 'rentrés'),
     ]),
-    ChecklistSection(title: 'DÉMARRAGE DU MOTEUR', items: [
-      ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
-      ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
-      ChecklistItem(action: 'Mixture', status: 'plein riche (POUSSER)'),
-      ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
-      ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
-      ChecklistItem(action: 'Pompe électrique', status: 'ON'),
-      ChecklistItem(action: 'Manette des gaz', status: '3 injections puis 1/4 en avant'),
-      ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
-      ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+    ChecklistSection(title: 'DÉMARRAGE DU MOTEUR', subSections: [
+      ChecklistSection(title: 'Procédure normale', items: [
+        ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
+        ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
+        ChecklistItem(action: 'Mixture', status: 'plein riche (POUSSER)'),
+        ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
+        ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
+        ChecklistItem(action: 'Pompe électrique', status: 'ON'),
+        ChecklistItem(action: 'Manette des gaz', status: '3 injections puis 1/4 en avant'),
+        ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
+        ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+      ]),
+      ChecklistSection(title: 'Procédure moteur chaud', items: [
+        ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
+        ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
+        ChecklistItem(action: 'Mixture', status: 'plein riche (POUSSER)'),
+        ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
+        ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
+        ChecklistItem(action: 'Pompe électrique', status: 'ON'),
+        ChecklistItem(action: 'Manette des gaz', status: '3 injections MAX puis 1/4 en avant'),
+        ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
+        ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+      ]),
+      ChecklistSection(title: 'Procédure par temps froid', items: [
+        ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
+        ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
+        ChecklistItem(action: 'Mixture', status: 'plein riche (POUSSER)'),
+        ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
+        ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
+        ChecklistItem(action: 'Pompe électrique', status: 'ON'),
+        ChecklistItem(action: 'Manette des gaz', status: '3 injections puis 1/4 en avant'),
+        ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
+        ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+        ChecklistItem(action: 'Soutien régime', status: 'injections successives jusqu’à 900-1000 tr/min', color: Colors.orange),
+      ]),
+      ChecklistSection(title: 'Moteur NOYÉ', items: [
+        ChecklistItem(action: 'Pompe électrique', status: 'arrêt'),
+        ChecklistItem(action: 'Mixture', status: 'étouffoir (TIRER)', color: Colors.red),
+        ChecklistItem(action: 'Manette des gaz', status: 'plein gaz (pousser)', color: Colors.orange),
+        ChecklistItem(action: 'Démarreur', status: 'actionné quelques secondes'),
+        ChecklistItem(action: 'Si démarrage', status: 'Mixture RICHE', color: Colors.green),
+        ChecklistItem(action: 'Suite', status: 'Reprendre procédure normale sans injection'),
+      ]),
     ]),
     ChecklistSection(title: 'APRÈS MISE EN ROUTE', items: [
       ChecklistItem(action: 'Pression d’huile (20s max)', status: 'plage verte', color: Colors.red),
@@ -226,6 +303,8 @@ final Map<String, List<ChecklistSection>> aircraftChecklists = {
       ChecklistItem(action: 'Frein de parc', status: 'desserré (si possible)'),
     ]),
   ],
+
+  // --- Checklist pour le F-HAIX ---
   'F-HAIX': [
     ChecklistSection(title: 'AVANT MISE EN ROUTE', items: [
       ChecklistItem(action: 'Horamètre', status: 'noté'),
@@ -240,16 +319,49 @@ final Map<String, List<ChecklistSection>> aircraftChecklists = {
       ChecklistItem(action: 'Jaugeurs essence et autonomie (G, C, D)', status: 'vérifié'),
       ChecklistItem(action: 'Volets', status: 'rentrés'),
     ]),
-    ChecklistSection(title: 'DÉMARRAGE DU MOTEUR', items: [
-      ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
-      ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
-      ChecklistItem(action: 'Mixture', status: 'plein riche (vers le haut)'),
-      ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
-      ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
-      ChecklistItem(action: 'Pompe électrique', status: 'ON'),
-      ChecklistItem(action: 'Manette des gaz', status: '3 injections puis 1/4 en avant'),
-      ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
-      ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+    ChecklistSection(title: 'DÉMARRAGE DU MOTEUR', subSections: [
+      ChecklistSection(title: 'Procédure normale', items: [
+        ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
+        ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
+        ChecklistItem(action: 'Mixture', status: 'plein riche (vers le haut)'),
+        ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
+        ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
+        ChecklistItem(action: 'Pompe électrique', status: 'ON'),
+        ChecklistItem(action: 'Manette des gaz', status: '3 injections puis 1/4 en avant'),
+        ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
+        ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+      ]),
+      ChecklistSection(title: 'Procédure moteur chaud', items: [
+        ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
+        ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
+        ChecklistItem(action: 'Mixture', status: 'plein riche (vers le haut)'),
+        ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
+        ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
+        ChecklistItem(action: 'Pompe électrique', status: 'ON'),
+        ChecklistItem(action: 'Manette des gaz', status: '3 injections MAX puis 1/4 en avant'),
+        ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
+        ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+      ]),
+      ChecklistSection(title: 'Procédure par temps froid', items: [
+        ChecklistItem(action: 'Interrupteur batterie', status: 'ON'),
+        ChecklistItem(action: 'Réchauffage carburateur', status: 'froid (pousser)'),
+        ChecklistItem(action: 'Mixture', status: 'plein riche (vers le haut)'),
+        ChecklistItem(action: 'Feu anti-collision', status: 'ON'),
+        ChecklistItem(action: 'Sélecteur magnétos', status: 'position L (LEFT)'),
+        ChecklistItem(action: 'Pompe électrique', status: 'ON'),
+        ChecklistItem(action: 'Manette des gaz', status: '3 injections puis 1/4 en avant'),
+        ChecklistItem(action: 'Zone hélice', status: 'dégagée', color: Colors.red),
+        ChecklistItem(action: 'Démarreur', status: 'marche (15 à 20 sec max)'),
+        ChecklistItem(action: 'Soutien régime', status: 'injections successives jusqu’à 900-1000 tr/min', color: Colors.orange),
+      ]),
+      ChecklistSection(title: 'Moteur NOYÉ', items: [
+        ChecklistItem(action: 'Pompe électrique', status: 'arrêt'),
+        ChecklistItem(action: 'Mixture', status: 'étouffoir (bas)', color: Colors.red),
+        ChecklistItem(action: 'Manette des gaz', status: 'plein gaz (pousser)', color: Colors.orange),
+        ChecklistItem(action: 'Démarreur', status: 'actionné quelques secondes'),
+        ChecklistItem(action: 'Si démarrage', status: 'Mixture RICHE', color: Colors.green),
+        ChecklistItem(action: 'Suite', status: 'Reprendre procédure normale sans injection'),
+      ]),
     ]),
     ChecklistSection(title: 'APRÈS MISE EN ROUTE', items: [
       ChecklistItem(action: 'Pression d’huile (20s max)', status: 'plage verte', color: Colors.red),

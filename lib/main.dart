@@ -6,6 +6,7 @@ void main() {
   runApp(const PerfosApp());
 }
 
+/// Point d'entrée de l'application.
 class PerfosApp extends StatelessWidget {
   const PerfosApp({super.key});
 
@@ -23,6 +24,7 @@ class PerfosApp extends StatelessWidget {
   }
 }
 
+/// Écran principal contenant le formulaire de saisie et les onglets de résultats par avion.
 class PerformanceCalculator extends StatefulWidget {
   const PerformanceCalculator({super.key});
 
@@ -31,17 +33,20 @@ class PerformanceCalculator extends StatefulWidget {
 }
 
 class _PerformanceCalculatorState extends State<PerformanceCalculator> {
+  // Contrôleurs pour les champs de saisie numérique
   final TextEditingController _altitudeController = TextEditingController(text: '0');
   final TextEditingController _tempController = TextEditingController(text: '15');
   final TextEditingController _massController = TextEditingController(text: '900');
   final TextEditingController _windController = TextEditingController(text: '0');
   
+  // Paramètres de configuration de la piste
   String _runwayType = 'Dur';
   String _surfaceState = 'Sèche';
 
   @override
   void initState() {
     super.initState();
+    // Rafraîchir l'UI à chaque modification d'un champ
     _altitudeController.addListener(() => setState(() {}));
     _tempController.addListener(() => setState(() {}));
     _massController.addListener(() => setState(() {}));
@@ -55,6 +60,7 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
     double? mass = double.tryParse(_massController.text);
     double? wind = double.tryParse(_windController.text);
 
+    // Calcul informatif de l'écart ISA
     String deltaISAText = "--";
     if (altitude != null && temp != null) {
       double isaTemp = 15 - (2 * altitude / 1000);
@@ -71,9 +77,10 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
           actions: [
             Builder(
               builder: (context) => IconButton(
-                icon: const Icon(Icons.playlist_add_check_rounded, size: 28),
+                icon: const Icon(Icons.playlist_add_check_rounded, size: 40),
                 tooltip: 'Check-list',
                 onPressed: () {
+                  // Ouvre la check-list correspondant à l'avion sélectionné dans l'onglet
                   final tabIndex = DefaultTabController.of(context).index;
                   final planeNames = ['F-GYKX', 'F-BVCY', 'F-HAIX'];
                   Navigator.push(
@@ -98,11 +105,12 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
         ),
         body: Column(
           children: [
+            // --- Formulaire de saisie des paramètres ---
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Card(
-                elevation: 4,
-                color: Colors.grey.shade100,
+                elevation: 7,
+                color: Colors.red.shade50,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -126,11 +134,11 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Row(
                         children: [
                           const Expanded(child: SizedBox()),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 28),
                           Expanded(
                             child: Text(
                               'Atmosphère : $deltaISAText',
@@ -186,6 +194,7 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
                 ),
               ),
             ),
+            // --- Vue des résultats par avion ---
             Expanded(
               child: TabBarView(
                 children: [
@@ -202,6 +211,7 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
   }
 }
 
+/// Écran d'affichage dynamique des check-lists.
 class ChecklistPage extends StatefulWidget {
   final String planeName;
   const ChecklistPage({super.key, required this.planeName});
@@ -211,12 +221,16 @@ class ChecklistPage extends StatefulWidget {
 }
 
 class _ChecklistPageState extends State<ChecklistPage> {
-  final Map<int, List<bool>> _checkedItems = {};
-  int _expandedIndex = 0; 
+  // Stocke l'état coché de chaque item : Map<ClePath, List<IsChecked>>
+  final Map<String, List<bool>> _checkedItems = {};
+  int _expandedIndex = 0; // Index de la section de haut niveau actuellement dépliée
+  int _expandedSubIndex = -1; // Index du sous-accordéon actuellement déplié
   final ScrollController _scrollController = ScrollController();
 
-  bool _isSectionComplete(int sectionIdx, List<ChecklistItem> items) {
-    final checkedList = _checkedItems[sectionIdx];
+  /// Vérifie si une liste d'items spécifique est complète.
+  bool _isListComplete(String key, List<ChecklistItem>? items) {
+    if (items == null) return false;
+    final checkedList = _checkedItems[key];
     if (checkedList == null) return false;
     for (int i = 0; i < items.length; i++) {
       if (items[i].isCheckable && !checkedList[i]) return false;
@@ -224,6 +238,20 @@ class _ChecklistPageState extends State<ChecklistPage> {
     return true;
   }
 
+  /// Vérifie si une section est considérée comme complète.
+  bool _isSectionComplete(int sectionIdx, ChecklistSection section) {
+    if (section.items != null) {
+      return _isListComplete("$sectionIdx", section.items);
+    }
+    if (section.subSections != null) {
+      for (int i = 0; i < section.subSections!.length; i++) {
+        if (_isListComplete("${sectionIdx}_$i", section.subSections![i].items)) return true;
+      }
+    }
+    return false;
+  }
+
+  /// Défilement automatique vers la section spécifiée.
   void _scrollToIndex(int index) {
     Future.delayed(const Duration(milliseconds: 200), () {
       if (_scrollController.hasClients) {
@@ -245,6 +273,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
             onPressed: () => setState(() {
               _checkedItems.clear();
               _expandedIndex = 0;
+              _expandedSubIndex = -1;
               _scrollToIndex(0);
             }),
             tooltip: 'Réinitialiser',
@@ -258,73 +287,126 @@ class _ChecklistPageState extends State<ChecklistPage> {
               itemCount: checklist.length,
               itemBuilder: (context, sectionIdx) {
                 final section = checklist[sectionIdx];
-                final isComplete = _isSectionComplete(sectionIdx, section.items);
+                final isComplete = _isSectionComplete(sectionIdx, section);
                 final isOpen = _expandedIndex == sectionIdx;
 
                 Color titleColor = Colors.blue;
-                if (isOpen) titleColor = Colors.purple;
-                else if (isComplete) titleColor = Colors.green;
-
+                if (isOpen) {
+                  titleColor = Colors.purple;
+                } else if (isComplete) {
+                  titleColor = Colors.green;
+                }
+                
                 return Theme(
                   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                   child: ExpansionTile(
-                    key: UniqueKey(),
+                    // La clé dépend de _expandedIndex : elle change uniquement quand on change de section,
+                    // forçant ainsi la fermeture de l'ancienne et l'ouverture de la nouvelle.
+                    key: ValueKey('outer_${sectionIdx}_$_expandedIndex'),
                     initiallyExpanded: isOpen,
                     onExpansionChanged: (open) {
-                      if (open) {
-                        setState(() => _expandedIndex = sectionIdx);
-                        _scrollToIndex(sectionIdx);
-                      } else if (_expandedIndex == sectionIdx) {
-                        setState(() => _expandedIndex = -1);
-                      }
+                      setState(() {
+                        if (open) {
+                          _expandedIndex = sectionIdx;
+                          _expandedSubIndex = -1;
+                          _scrollToIndex(sectionIdx);
+                        } else if (_expandedIndex == sectionIdx) {
+                          _expandedIndex = -1;
+                        }
+                      });
                     },
                     title: Text(section.title, style: TextStyle(fontWeight: FontWeight.bold, color: titleColor)),
-                    children: List.generate(section.items.length, (itemIdx) {
-                      final item = section.items[itemIdx];
-                      _checkedItems[sectionIdx] ??= List.filled(section.items.length, false);
-                      
-                      final itemStyle = TextStyle(
-                        color: item.color,
-                        fontWeight: item.color != null ? FontWeight.bold : FontWeight.normal,
-                      );
-
-                      if (!item.isCheckable) {
-                        return ListTile(
-                          title: Text(item.action, style: itemStyle.copyWith(fontSize: 14)),
-                          subtitle: Text(item.status, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.blueGrey)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                          dense: true,
-                        );
-                      }
-
-                      return CheckboxListTile(
-                        value: _checkedItems[sectionIdx]![itemIdx],
-                        onChanged: (val) {
-                          setState(() {
-                            _checkedItems[sectionIdx]![itemIdx] = val!;
-                            if (_isSectionComplete(sectionIdx, section.items)) {
-                              if (_expandedIndex < checklist.length - 1) {
-                                _expandedIndex++;
-                                _scrollToIndex(_expandedIndex);
-                              } else {
-                                _expandedIndex = -1;
-                              }
-                            }
-                          });
-                        },
-                        title: Text(item.action, style: itemStyle),
-                        subtitle: Text(item.status, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                        controlAffinity: ListTileControlAffinity.leading,
-                      );
-                    }),
+                    children: _buildSectionContent(section, sectionIdx, checklist),
                   ),
                 );
               },
             ),
     );
   }
+
+  List<Widget> _buildSectionContent(ChecklistSection section, int sectionIdx, List<ChecklistSection> checklist) {
+    if (section.subSections != null) {
+      return section.subSections!.asMap().entries.map((entry) {
+        int subIdx = entry.key;
+        ChecklistSection sub = entry.value;
+        String key = "${sectionIdx}_$subIdx";
+        bool isSubComplete = _isListComplete(key, sub.items);
+        bool isSubOpen = _expandedSubIndex == subIdx;
+        
+        return Padding(
+          padding: const EdgeInsets.only(left: 16.0),
+          child: ExpansionTile(
+            // La clé change quand on change de sous-procédure ou de section parente.
+            key: ValueKey('sub_${sectionIdx}_${subIdx}_$_expandedSubIndex'),
+            initiallyExpanded: isSubOpen,
+            onExpansionChanged: (open) {
+              setState(() {
+                if (open) {
+                  _expandedSubIndex = subIdx;
+                } else if (_expandedSubIndex == subIdx) {
+                  _expandedSubIndex = -1;
+                }
+              });
+            },
+            title: Text(sub.title, style: TextStyle(
+              fontSize: 14, 
+              fontWeight: FontWeight.bold, 
+              color: isSubComplete ? Colors.green : Colors.blueGrey
+            )),
+            children: _buildItems(sub.items ?? [], key, sectionIdx, checklist, isSub: true),
+          ),
+        );
+      }).toList();
+    } else {
+      return _buildItems(section.items ?? [], "$sectionIdx", sectionIdx, checklist, isSub: false);
+    }
+  }
+
+  List<Widget> _buildItems(List<ChecklistItem> items, String key, int sectionIdx, List<ChecklistSection> checklist, {required bool isSub}) {
+    _checkedItems[key] ??= List.filled(items.length, false);
+    
+    return List.generate(items.length, (itemIdx) {
+      final item = items[itemIdx];
+      final itemStyle = TextStyle(
+        color: item.color,
+        fontWeight: item.color != null ? FontWeight.bold : FontWeight.normal,
+      );
+
+      if (!item.isCheckable) {
+        return ListTile(
+          title: Text(item.action, style: itemStyle.copyWith(fontSize: 14)),
+          subtitle: Text(item.status, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.blueGrey)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+          dense: true,
+        );
+      }
+
+      return CheckboxListTile(
+        value: _checkedItems[key]![itemIdx],
+        onChanged: (val) {
+          setState(() {
+            _checkedItems[key]![itemIdx] = val!;
+            // Si la liste (normale ou sous-procédure) est finie, on passe à la section suivante
+            if (_isListComplete(key, items)) {
+              if (_expandedIndex < checklist.length - 1) {
+                _expandedIndex++;
+                _expandedSubIndex = -1; // Réinitialise tout pour le nouveau bloc
+                _scrollToIndex(_expandedIndex);
+              } else {
+                _expandedIndex = -1;
+              }
+            }
+          });
+        },
+        title: Text(item.action, style: itemStyle),
+        subtitle: Text(item.status, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+        controlAffinity: ListTileControlAffinity.leading,
+      );
+    });
+  }
 }
 
+/// Affiche les résultats de performance calculés pour un avion spécifique.
 class PlaneResultView extends StatelessWidget {
   final String planeName;
   final Aircraft? aircraft;
@@ -339,8 +421,11 @@ class PlaneResultView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (aircraft == null || altitude == null || temp == null || mass == null || wind == null) return const Center(child: Text('Données manquantes ou invalides.'));
+    if (aircraft == null || altitude == null || temp == null || mass == null || wind == null) {
+      return const Center(child: Text('Données manquantes ou invalides.'));
+    }
 
+    // --- CALCULS ---
     PerformanceResult takeoffRes = aircraft!.getTakeoffPerformance(altitude!, temp!, mass!, runwayType);
     double windFactorTakeoff = aircraft!.calculateWindFactorTakeoff(wind!);
     double toRoll = takeoffRes.entry.roll * windFactorTakeoff;
@@ -355,8 +440,8 @@ class PlaneResultView extends StatelessWidget {
       toRoll *= 1.10; toDist *= 1.10; ldRoll *= 1.10; ldDist *= 1.10;
     }
 
-    double toDistSafety = toDist * 1.15;
-    double ldDistSafety = ldDist * 1.15;
+    double toDistSafety = toDist * 1.20;
+    double ldDistSafety = ldDist * 1.20;
 
     CalculationStatus finalStatus = _getWorstStatus([takeoffRes.status, landingRes.status, aircraft!.getWindStatus(wind!)]);
 
@@ -365,17 +450,23 @@ class PlaneResultView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
-            if (finalStatus == CalculationStatus.noData) const Padding(padding: EdgeInsets.all(20.0), child: Text('Données non disponibles.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)))
+            if (finalStatus == CalculationStatus.noData) 
+              const Padding(padding: EdgeInsets.all(20.0), child: Text('Données non disponibles.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)))
             else ...[
               if (finalStatus != CalculationStatus.exact) _buildStatusWarning(finalStatus) else const SizedBox(height: 16),
+              
               _buildSectionTitle('DÉCOLLAGE (Passage 15m)'),
               _buildResultRow(context, 'Roulement', toRoll, Colors.blue.shade50),
               _buildDualResultRow(context, 'Distance Totale', toDistSafety, toDist, Colors.blue.shade100),
+              
               const SizedBox(height: 12),
+              
               _buildSectionTitle('ATTERRISSAGE (Passage 15m)'),
               _buildResultRow(context, 'Roulement', ldRoll, Colors.green.shade50),
               _buildDualResultRow(context, 'Distance Totale', ldDistSafety, ldDist, Colors.green.shade100),
+              
               const SizedBox(height: 20),
+              
               _buildInfoCard(windFactorTakeoff, windFactorLanding),
             ]
           ],
@@ -432,7 +523,7 @@ class PlaneResultView extends StatelessWidget {
     child: Padding(padding: const EdgeInsets.all(12.0), child: Column(children: [
       const Text('Notes et Corrections :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
       const SizedBox(height: 4),
-      const Text('(*) Distance majorée de 15% (Pilote niveau standard)', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.deepOrange)),
+      const Text('(*) Distance majorée de 20% (Pilote niveau standard)', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.deepOrange)),
       const SizedBox(height: 8),
       Text('• Vent TO: x${wfTO.toStringAsFixed(2)} | LD: x${wfLD.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)),
       if (surfaceState == 'Mouillée') const Text('• Piste Mouillée : +10% (Valeur estimée)', style: TextStyle(fontSize: 11, color: Colors.blueGrey, fontStyle: FontStyle.italic)),
