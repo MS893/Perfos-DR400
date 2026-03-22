@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'performance_logic.dart';
+import 'checklist_data.dart';
 
 void main() {
   runApp(const PerfosApp());
@@ -12,6 +13,7 @@ class PerfosApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Perfos Décollage & Atterrissage',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
@@ -66,6 +68,24 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Calcul des Performances'),
+          actions: [
+            Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.playlist_add_check_rounded, size: 28),
+                tooltip: 'Check-list',
+                onPressed: () {
+                  final tabIndex = DefaultTabController.of(context).index;
+                  final planeNames = ['F-GYKX', 'F-BVCY', 'F-HAIX'];
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChecklistPage(planeName: planeNames[tabIndex]),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
           bottom: const TabBar(
             labelStyle: TextStyle(fontWeight: FontWeight.bold),
             unselectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
@@ -205,6 +225,139 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class ChecklistPage extends StatefulWidget {
+  final String planeName;
+  const ChecklistPage({super.key, required this.planeName});
+
+  @override
+  State<ChecklistPage> createState() => _ChecklistPageState();
+}
+
+class _ChecklistPageState extends State<ChecklistPage> {
+  final Map<int, List<bool>> _checkedItems = {};
+  int _expandedIndex = 0; 
+  final ScrollController _scrollController = ScrollController();
+
+  bool _isSectionComplete(int sectionIdx, List<ChecklistItem> items) {
+    final checkedList = _checkedItems[sectionIdx];
+    if (checkedList == null) return false;
+    
+    // Une section est complète si TOUS les items cochables sont cochés
+    for (int i = 0; i < items.length; i++) {
+      if (items[i].isCheckable && !checkedList[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _scrollToIndex(int index) {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          index * 56.0, 
+          duration: const Duration(milliseconds: 300), 
+          curve: Curves.easeInOut
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final checklist = aircraftChecklists[widget.planeName] ?? [];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Check-list ${widget.planeName}'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => setState(() {
+              _checkedItems.clear();
+              _expandedIndex = 0;
+              _scrollToIndex(0);
+            }),
+            tooltip: 'Réinitialiser',
+          )
+        ],
+      ),
+      body: checklist.isEmpty
+          ? const Center(child: Text('Aucune check-list disponible pour cet avion.'))
+          : ListView.builder(
+              controller: _scrollController,
+              itemCount: checklist.length,
+              itemBuilder: (context, sectionIdx) {
+                final section = checklist[sectionIdx];
+                final isComplete = _isSectionComplete(sectionIdx, section.items);
+                final isOpen = _expandedIndex == sectionIdx;
+
+                Color titleColor = Colors.blue;
+                if (isOpen) {
+                  titleColor = Colors.purple;
+                } else if (isComplete) {
+                  titleColor = Colors.green;
+                }
+
+                return Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    key: UniqueKey(),
+                    initiallyExpanded: isOpen,
+                    onExpansionChanged: (open) {
+                      if (open) {
+                        setState(() => _expandedIndex = sectionIdx);
+                        _scrollToIndex(sectionIdx);
+                      } else if (_expandedIndex == sectionIdx) {
+                        setState(() => _expandedIndex = -1);
+                      }
+                    },
+                    title: Text(
+                      section.title,
+                      style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
+                    ),
+                    children: List.generate(section.items.length, (itemIdx) {
+                      final item = section.items[itemIdx];
+                      _checkedItems[sectionIdx] ??= List.filled(section.items.length, false);
+                      
+                      if (!item.isCheckable) {
+                        return ListTile(
+                          title: Text(item.action, style: const TextStyle(fontSize: 14)),
+                          subtitle: Text(item.status, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.blueGrey)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                          dense: true,
+                        );
+                      }
+
+                      return CheckboxListTile(
+                        value: _checkedItems[sectionIdx]![itemIdx],
+                        onChanged: (val) {
+                          setState(() {
+                            _checkedItems[sectionIdx]![itemIdx] = val!;
+                            
+                            if (_isSectionComplete(sectionIdx, section.items)) {
+                              if (_expandedIndex < checklist.length - 1) {
+                                _expandedIndex++;
+                                _scrollToIndex(_expandedIndex);
+                              } else {
+                                _expandedIndex = -1;
+                              }
+                            }
+                          });
+                        },
+                        title: Text(item.action),
+                        subtitle: Text(item.status, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      );
+                    }),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
