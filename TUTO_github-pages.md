@@ -24,7 +24,7 @@ Si vous voulez vous simplifier la vie, je vous conseille vivement d'utiliser le 
     ```
 2.  **Lancez la mise à jour :**
     ```bash
-    peanut --build-config-release --web-renderer canvaskit
+    flutter pub global run peanut --extra-args "--base-href=/Perfos-DR400/"
     ```
 3.  **Poussez les modifications :**
     ```bash
