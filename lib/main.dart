@@ -189,36 +189,9 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
             Expanded(
               child: TabBarView(
                 children: [
-                  PlaneResultView(
-                    planeName: 'F-GYKX',
-                    aircraft: fGykx,
-                    altitude: altitude,
-                    temp: temp,
-                    mass: mass,
-                    wind: wind,
-                    runwayType: _runwayType,
-                    surfaceState: _surfaceState,
-                  ),
-                  PlaneResultView(
-                    planeName: 'F-BVCY',
-                    aircraft: fBvcy,
-                    altitude: altitude,
-                    temp: temp,
-                    mass: mass,
-                    wind: wind,
-                    runwayType: _runwayType,
-                    surfaceState: _surfaceState,
-                  ),
-                  PlaneResultView(
-                    planeName: 'F-HAIX',
-                    aircraft: fHaix,
-                    altitude: altitude,
-                    temp: temp,
-                    mass: mass,
-                    wind: wind,
-                    runwayType: _runwayType,
-                    surfaceState: _surfaceState,
-                  ),
+                  PlaneResultView(planeName: 'F-GYKX', aircraft: fGykx, altitude: altitude, temp: temp, mass: mass, wind: wind, runwayType: _runwayType, surfaceState: _surfaceState),
+                  PlaneResultView(planeName: 'F-BVCY', aircraft: fBvcy, altitude: altitude, temp: temp, mass: mass, wind: wind, runwayType: _runwayType, surfaceState: _surfaceState),
+                  PlaneResultView(planeName: 'F-HAIX', aircraft: fHaix, altitude: altitude, temp: temp, mass: mass, wind: wind, runwayType: _runwayType, surfaceState: _surfaceState),
                 ],
               ),
             ),
@@ -245,12 +218,8 @@ class _ChecklistPageState extends State<ChecklistPage> {
   bool _isSectionComplete(int sectionIdx, List<ChecklistItem> items) {
     final checkedList = _checkedItems[sectionIdx];
     if (checkedList == null) return false;
-    
-    // Une section est complète si TOUS les items cochables sont cochés
     for (int i = 0; i < items.length; i++) {
-      if (items[i].isCheckable && !checkedList[i]) {
-        return false;
-      }
+      if (items[i].isCheckable && !checkedList[i]) return false;
     }
     return true;
   }
@@ -258,11 +227,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
   void _scrollToIndex(int index) {
     Future.delayed(const Duration(milliseconds: 200), () {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          index * 56.0, 
-          duration: const Duration(milliseconds: 300), 
-          curve: Curves.easeInOut
-        );
+        _scrollController.animateTo(index * 56.0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       }
     });
   }
@@ -287,7 +252,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
         ],
       ),
       body: checklist.isEmpty
-          ? const Center(child: Text('Aucune check-list disponible pour cet avion.'))
+          ? const Center(child: Text('Aucune check-list disponible.'))
           : ListView.builder(
               controller: _scrollController,
               itemCount: checklist.length,
@@ -297,11 +262,8 @@ class _ChecklistPageState extends State<ChecklistPage> {
                 final isOpen = _expandedIndex == sectionIdx;
 
                 Color titleColor = Colors.blue;
-                if (isOpen) {
-                  titleColor = Colors.purple;
-                } else if (isComplete) {
-                  titleColor = Colors.green;
-                }
+                if (isOpen) titleColor = Colors.purple;
+                else if (isComplete) titleColor = Colors.green;
 
                 return Theme(
                   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -316,19 +278,21 @@ class _ChecklistPageState extends State<ChecklistPage> {
                         setState(() => _expandedIndex = -1);
                       }
                     },
-                    title: Text(
-                      section.title,
-                      style: TextStyle(fontWeight: FontWeight.bold, color: titleColor),
-                    ),
+                    title: Text(section.title, style: TextStyle(fontWeight: FontWeight.bold, color: titleColor)),
                     children: List.generate(section.items.length, (itemIdx) {
                       final item = section.items[itemIdx];
                       _checkedItems[sectionIdx] ??= List.filled(section.items.length, false);
                       
+                      final itemStyle = TextStyle(
+                        color: item.color,
+                        fontWeight: item.color != null ? FontWeight.bold : FontWeight.normal,
+                      );
+
                       if (!item.isCheckable) {
                         return ListTile(
-                          title: Text(item.action, style: const TextStyle(fontSize: 14)),
+                          title: Text(item.action, style: itemStyle.copyWith(fontSize: 14)),
                           subtitle: Text(item.status, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.blueGrey)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
                           dense: true,
                         );
                       }
@@ -338,7 +302,6 @@ class _ChecklistPageState extends State<ChecklistPage> {
                         onChanged: (val) {
                           setState(() {
                             _checkedItems[sectionIdx]![itemIdx] = val!;
-                            
                             if (_isSectionComplete(sectionIdx, section.items)) {
                               if (_expandedIndex < checklist.length - 1) {
                                 _expandedIndex++;
@@ -349,7 +312,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                             }
                           });
                         },
-                        title: Text(item.action),
+                        title: Text(item.action, style: itemStyle),
                         subtitle: Text(item.status, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
                         controlAffinity: ListTileControlAffinity.leading,
                       );
@@ -372,81 +335,46 @@ class PlaneResultView extends StatelessWidget {
   final String runwayType;
   final String surfaceState;
 
-  const PlaneResultView({
-    super.key,
-    required this.planeName,
-    this.aircraft,
-    this.altitude,
-    this.temp,
-    this.mass,
-    this.wind,
-    required this.runwayType,
-    required this.surfaceState,
-  });
+  const PlaneResultView({super.key, required this.planeName, this.aircraft, this.altitude, this.temp, this.mass, this.wind, required this.runwayType, required this.surfaceState});
 
   @override
   Widget build(BuildContext context) {
-    if (aircraft == null || altitude == null || temp == null || mass == null || wind == null) {
-      return const Center(child: Text('Données manquantes ou invalides.'));
-    }
+    if (aircraft == null || altitude == null || temp == null || mass == null || wind == null) return const Center(child: Text('Données manquantes ou invalides.'));
 
-    // --- CALCULS DÉCOLLAGE ---
     PerformanceResult takeoffRes = aircraft!.getTakeoffPerformance(altitude!, temp!, mass!, runwayType);
     double windFactorTakeoff = aircraft!.calculateWindFactorTakeoff(wind!);
-    
     double toRoll = takeoffRes.entry.roll * windFactorTakeoff;
     double toDist = takeoffRes.entry.distance * windFactorTakeoff;
 
-    // --- CALCULS ATTERRISSAGE ---
     PerformanceResult landingRes = aircraft!.landing.calculate(altitude!, temp!, mass!);
     double windFactorLanding = aircraft!.calculateWindFactorLanding(wind!);
-    
     double ldRoll = landingRes.entry.roll * windFactorLanding;
     double ldDist = landingRes.entry.distance * windFactorLanding;
 
-    // Correction Mouillée (+10%)
     if (surfaceState == 'Mouillée') {
-      toRoll *= 1.10;
-      toDist *= 1.10;
-      ldRoll *= 1.10;
-      ldDist *= 1.10;
+      toRoll *= 1.10; toDist *= 1.10; ldRoll *= 1.10; ldDist *= 1.10;
     }
 
-    // Distance de sécurité (+15%)
     double toDistSafety = toDist * 1.15;
     double ldDistSafety = ldDist * 1.15;
 
-    CalculationStatus finalStatus = _getWorstStatus([
-      takeoffRes.status, 
-      landingRes.status, 
-      aircraft!.getWindStatus(wind!)
-    ]);
+    CalculationStatus finalStatus = _getWorstStatus([takeoffRes.status, landingRes.status, aircraft!.getWindStatus(wind!)]);
 
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
-            if (finalStatus == CalculationStatus.noData)
-              const Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Text('Données non disponibles pour cet avion.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-              )
+            if (finalStatus == CalculationStatus.noData) const Padding(padding: EdgeInsets.all(20.0), child: Text('Données non disponibles.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)))
             else ...[
-              if (finalStatus != CalculationStatus.exact) 
-                _buildStatusWarning(finalStatus) 
-              else 
-                const SizedBox(height: 16),
-              
+              if (finalStatus != CalculationStatus.exact) _buildStatusWarning(finalStatus) else const SizedBox(height: 16),
               _buildSectionTitle('DÉCOLLAGE (Passage 15m)'),
               _buildResultRow(context, 'Roulement', toRoll, Colors.blue.shade50),
               _buildDualResultRow(context, 'Distance Totale', toDistSafety, toDist, Colors.blue.shade100),
-              
               const SizedBox(height: 12),
               _buildSectionTitle('ATTERRISSAGE (Passage 15m)'),
               _buildResultRow(context, 'Roulement', ldRoll, Colors.green.shade50),
               _buildDualResultRow(context, 'Distance Totale', ldDistSafety, ldDist, Colors.green.shade100),
-              
               const SizedBox(height: 20),
               _buildInfoCard(windFactorTakeoff, windFactorLanding),
             ]
@@ -456,12 +384,7 @@ class PlaneResultView extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
-    );
-  }
+  Widget _buildSectionTitle(String title) => Padding(padding: const EdgeInsets.symmetric(vertical: 4.0), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)));
 
   CalculationStatus _getWorstStatus(List<CalculationStatus> statuses) {
     if (statuses.contains(CalculationStatus.noData)) return CalculationStatus.noData;
@@ -475,11 +398,7 @@ class PlaneResultView extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8, top: 22),
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: isExtrapolated ? Colors.red.shade50 : Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isExtrapolated ? Colors.red : Colors.orange),
-      ),
+      decoration: BoxDecoration(color: isExtrapolated ? Colors.red.shade50 : Colors.orange.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: isExtrapolated ? Colors.red : Colors.orange)),
       child: Row(
         children: [
           Icon(isExtrapolated ? Icons.warning_amber_rounded : Icons.info_outline, color: isExtrapolated ? Colors.red : Colors.orange, size: 20),
@@ -490,64 +409,33 @@ class PlaneResultView extends StatelessWidget {
     );
   }
 
-  Widget _buildResultRow(BuildContext context, String label, double value, Color bgColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 13)),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.black12)),
-            child: Text('${value.toStringAsFixed(0)} m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildResultRow(BuildContext context, String label, double value, Color bgColor) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 2.0),
+    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text(label, style: const TextStyle(fontSize: 13)),
+      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.black12)), child: Text('${value.toStringAsFixed(0)} m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+    ]),
+  );
 
-  Widget _buildDualResultRow(BuildContext context, String label, double safetyValue, double tableValue, Color tableBgColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Row(
-        children: [
-          Expanded(flex: 3, child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold))),
-          Container(
-            width: 70,
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.orange.shade200)),
-            child: Center(child: Text('${safetyValue.toStringAsFixed(0)} m*', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepOrange))),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            width: 70,
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(color: tableBgColor, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.black12)),
-            child: Center(child: Text('${tableValue.toStringAsFixed(0)} m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54))),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildDualResultRow(BuildContext context, String label, double safetyValue, double tableValue, Color tableBgColor) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 2.0),
+    child: Row(children: [
+      Expanded(flex: 3, child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold))),
+      Container(width: 70, padding: const EdgeInsets.symmetric(vertical: 4), decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.orange.shade200)), child: Center(child: Text('${safetyValue.toStringAsFixed(0)} m*', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepOrange)))),
+      const SizedBox(width: 8),
+      Container(width: 70, padding: const EdgeInsets.symmetric(vertical: 4), decoration: BoxDecoration(color: tableBgColor, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.black12)), child: Center(child: Text('${tableValue.toStringAsFixed(0)} m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54)))),
+    ]),
+  );
 
-  Widget _buildInfoCard(double wfTO, double wfLD) {
-    return Card(
-      color: Colors.amber.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          children: [
-            const Text('Notes et Corrections :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-            const SizedBox(height: 4),
-            const Text('(*) Distance majorée de 15% (Pilote niveau standard)', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.deepOrange)),
-            const SizedBox(height: 8),
-            Text('• Vent TO: x${wfTO.toStringAsFixed(2)} | LD: x${wfLD.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)),
-            if (runwayType == 'Herbe') const Text('• Herbe : Coefficient ou tableau spécifique appliqué', style: TextStyle(fontSize: 11)),
-            if (surfaceState == 'Mouillée') const Text('• Piste Mouillée : +10% (Valeur estimée, non constructeur)', style: TextStyle(fontSize: 11, color: Colors.blueGrey, fontStyle: FontStyle.italic)),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildInfoCard(double wfTO, double wfLD) => Card(
+    color: Colors.amber.shade50,
+    child: Padding(padding: const EdgeInsets.all(12.0), child: Column(children: [
+      const Text('Notes et Corrections :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+      const SizedBox(height: 4),
+      const Text('(*) Distance majorée de 15% (Pilote niveau standard)', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.deepOrange)),
+      const SizedBox(height: 8),
+      Text('• Vent TO: x${wfTO.toStringAsFixed(2)} | LD: x${wfLD.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)),
+      if (surfaceState == 'Mouillée') const Text('• Piste Mouillée : +10% (Valeur estimée)', style: TextStyle(fontSize: 11, color: Colors.blueGrey, fontStyle: FontStyle.italic)),
+    ])),
+  );
 }
