@@ -1,39 +1,28 @@
-## Voici les étapes à suivre (au choix) pour mettre à jour la page github-page :
+## Voici les étapes à suivre pour mettre à jour la page github-page :
 
 ---
 
-### 1. La méthode manuelle (Rapide)
-C'est la méthode la plus directe si vous n'avez pas de script automatique en place.
-
-1.  **Générez le build Web :**
-    Assurez-vous d'utiliser le bon `base-href` (le nom de votre dépôt GitHub entre deux slashs).
-    ```bash
-    flutter build web --release --base-href "/NOM_DE_VOTRE_REPO/"
-    ```
-2.  **Déployez vers GitHub :**
-    Le moyen le plus simple est d'utiliser le package `gh-pages` (si vous l'avez installé en Node.js) ou de copier manuellement le contenu de `build/web` vers votre branche de déploiement.
-
----
-
-### 2. La méthode recommandée : `peanut`
+### 1. La méthode recommandée : `peanut`
 Si vous voulez vous simplifier la vie, je vous conseille vivement d'utiliser le package **peanut**. Il automatise la création d'une branche `gh-pages` à partir de votre build.
 
-1.  **Installez peanut (une seule fois) :**
+Installez peanut (une seule fois) :
     ```bash
     dart pub global activate peanut
     ```
-2.  **Lancez la mise à jour :**
+
+1. **Lancez la mise à jour :**
     ```bash
     flutter pub global run peanut --extra-args "--base-href=/Perfos-DR400/"
     ```
-3.  **Poussez les modifications :**
+   
+2.  **Poussez les modifications :**
     ```bash
-    git push origin gh-pages
+    git push origin gh-pages --force
     ```
 
 ---
 
-### 3. Rappel sur le cache (Le piège classique)
+### 2. Rappel sur le cache (Le piège classique)
 Si vous poussez votre code et que rien ne change sur votre navigateur :
 * **Attendez 2-3 minutes :** GitHub a besoin d'un peu de temps pour reconstruire la page.
 * **Videz le cache :** Faites un `Ctrl + F5` (ou `Cmd + Shift + R`) car les navigateurs gardent souvent l'ancienne version du `main.dart.js` en mémoire.

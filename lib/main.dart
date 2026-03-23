@@ -32,8 +32,9 @@ class PerformanceCalculator extends StatefulWidget {
   State<PerformanceCalculator> createState() => _PerformanceCalculatorState();
 }
 
+/// Gestion du formulaire de saisie et des onglets de résultats par avion.
 class _PerformanceCalculatorState extends State<PerformanceCalculator> {
-  // Contrôleurs pour les champs de saisie numérique
+  // Contrôleurs pour les champs de saisie numérique, initialisé avec les valeurs par défaut
   final TextEditingController _altitudeController = TextEditingController(text: '0');
   final TextEditingController _tempController = TextEditingController(text: '15');
   final TextEditingController _massController = TextEditingController(text: '900');
@@ -42,6 +43,9 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
   // Paramètres de configuration de la piste
   String _runwayType = 'Dur';
   String _surfaceState = 'Sèche';
+  
+  // État pour la taille du texte (normal ou agrandi)
+  bool _isLargeText = false;
 
   @override
   void initState() {
@@ -53,6 +57,7 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
     _windController.addListener(() => setState(() {}));
   }
 
+  /// affichage de la barre de titre + icones, et des onglets (immats)
   @override
   Widget build(BuildContext context) {
     double? altitude = double.tryParse(_altitudeController.text);
@@ -75,6 +80,12 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
         appBar: AppBar(
           title: const Text('Calcul des Performances'),
           actions: [
+            // Bouton pour basculer la taille du texte
+            IconButton(
+              icon: Icon(_isLargeText ? Icons.text_decrease : Icons.text_increase, size: 32),
+              tooltip: 'Taille du texte',
+              onPressed: () => setState(() => _isLargeText = !_isLargeText),
+            ),
             Builder(
               builder: (context) => IconButton(
                 icon: const Icon(Icons.playlist_add_check_rounded, size: 40),
@@ -86,7 +97,10 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ChecklistPage(planeName: planeNames[tabIndex]),
+                      builder: (context) => ChecklistPage(
+                        planeName: planeNames[tabIndex],
+                        isLargeText: _isLargeText,
+                      ),
                     ),
                   );
                 },
@@ -103,308 +117,122 @@ class _PerformanceCalculatorState extends State<PerformanceCalculator> {
             ],
           ),
         ),
-        body: Column(
-          children: [
-            // --- Formulaire de saisie des paramètres ---
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                elevation: 7,
-                color: Colors.red.shade50,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _altitudeController,
-                              decoration: const InputDecoration(labelText: 'Altitude (ft)', border: OutlineInputBorder()),
-                              keyboardType: TextInputType.number,
+        body: MediaQuery(
+          // On applique une mise à l'échelle du texte sur tout le contenu du body
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(_isLargeText ? 1.12 : 1.0),
+          ),
+          child: Column(
+            children: [
+              // --- Formulaire de saisie des paramètres ---
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Card(
+                  elevation: 7,
+                  color: Colors.red.shade50,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _altitudeController,
+                                decoration: const InputDecoration(labelText: 'Altitude (ft)', border: OutlineInputBorder()),
+                                keyboardType: TextInputType.number,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _tempController,
-                              decoration: const InputDecoration(labelText: 'Température (°C)', border: OutlineInputBorder()),
-                              keyboardType: TextInputType.number,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextField(
+                                controller: _tempController,
+                                decoration: const InputDecoration(labelText: 'Température (°C)', border: OutlineInputBorder()),
+                                keyboardType: TextInputType.number,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          const Expanded(child: SizedBox()),
-                          const SizedBox(width: 28),
-                          Expanded(
-                            child: Text(
-                              'Atmosphère : $deltaISAText',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontStyle: FontStyle.italic),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            const Expanded(child: SizedBox()),
+                            const SizedBox(width: 28),
+                            Expanded(
+                              child: Text(
+                                'Atmosphère : $deltaISAText',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontStyle: FontStyle.italic),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _massController,
-                              decoration: const InputDecoration(labelText: 'Masse (kg)', border: OutlineInputBorder()),
-                              keyboardType: TextInputType.number,
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _massController,
+                                decoration: const InputDecoration(labelText: 'Masse (kg)', border: OutlineInputBorder()),
+                                keyboardType: TextInputType.number,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _windController,
-                              decoration: const InputDecoration(labelText: 'Vent Face(+) / Arr(-) (kt)', border: OutlineInputBorder()),
-                              keyboardType: TextInputType.number,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextField(
+                                controller: _windController,
+                                decoration: const InputDecoration(labelText: 'Vent Face(+) / Arr(-) (kt)', border: OutlineInputBorder()),
+                                keyboardType: TextInputType.number,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          const Text('Piste :'),
-                          DropdownButton<String>(
-                            value: _runwayType,
-                            items: ['Dur', 'Herbe'].map((String value) {
-                              return DropdownMenuItem<String>(value: value, child: Text(value));
-                            }).toList(),
-                            onChanged: (val) => setState(() => _runwayType = val!),
-                          ),
-                          const Text('État :'),
-                          DropdownButton<String>(
-                            value: _surfaceState,
-                            items: ['Sèche', 'Mouillée'].map((String value) {
-                              return DropdownMenuItem<String>(value: value, child: Text(value));
-                            }).toList(),
-                            onChanged: (val) => setState(() => _surfaceState = val!),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            const Text('Piste :'),
+                            DropdownButton<String>(
+                              value: _runwayType,
+                              items: ['Dur', 'Herbe'].map((String value) {
+                                return DropdownMenuItem<String>(value: value, child: Text(value));
+                              }).toList(),
+                              onChanged: (val) => setState(() => _runwayType = val!),
+                            ),
+                            const Text('État :'),
+                            DropdownButton<String>(
+                              value: _surfaceState,
+                              items: ['Sèche', 'Mouillée'].map((String value) {
+                                return DropdownMenuItem<String>(value: value, child: Text(value));
+                              }).toList(),
+                              onChanged: (val) => setState(() => _surfaceState = val!),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
+                                ),
+              ),
+              // --- Vue des résultats par avion ---
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    PlaneResultView(planeName: 'F-GYKX', aircraft: fGykx, altitude: altitude, temp: temp, mass: mass, wind: wind, runwayType: _runwayType, surfaceState: _surfaceState),
+                    PlaneResultView(planeName: 'F-BVCY', aircraft: fBvcy, altitude: altitude, temp: temp, mass: mass, wind: wind, runwayType: _runwayType, surfaceState: _surfaceState),
+                    PlaneResultView(planeName: 'F-HAIX', aircraft: fHaix, altitude: altitude, temp: temp, mass: mass, wind: wind, runwayType: _runwayType, surfaceState: _surfaceState),
+                  ],
                 ),
               ),
-            ),
-            // --- Vue des résultats par avion ---
-            Expanded(
-              child: TabBarView(
-                children: [
-                  PlaneResultView(planeName: 'F-GYKX', aircraft: fGykx, altitude: altitude, temp: temp, mass: mass, wind: wind, runwayType: _runwayType, surfaceState: _surfaceState),
-                  PlaneResultView(planeName: 'F-BVCY', aircraft: fBvcy, altitude: altitude, temp: temp, mass: mass, wind: wind, runwayType: _runwayType, surfaceState: _surfaceState),
-                  PlaneResultView(planeName: 'F-HAIX', aircraft: fHaix, altitude: altitude, temp: temp, mass: mass, wind: wind, runwayType: _runwayType, surfaceState: _surfaceState),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Écran d'affichage dynamique des check-lists.
-class ChecklistPage extends StatefulWidget {
-  final String planeName;
-  const ChecklistPage({super.key, required this.planeName});
 
-  @override
-  State<ChecklistPage> createState() => _ChecklistPageState();
-}
-
-class _ChecklistPageState extends State<ChecklistPage> {
-  // Stocke l'état coché de chaque item : Map<ClePath, List<IsChecked>>
-  final Map<String, List<bool>> _checkedItems = {};
-  int _expandedIndex = 0; // Index de la section de haut niveau actuellement dépliée
-  int _expandedSubIndex = -1; // Index du sous-accordéon actuellement déplié
-  final ScrollController _scrollController = ScrollController();
-
-  /// Vérifie si une liste d'items spécifique est complète.
-  bool _isListComplete(String key, List<ChecklistItem>? items) {
-    if (items == null) return false;
-    final checkedList = _checkedItems[key];
-    if (checkedList == null) return false;
-    for (int i = 0; i < items.length; i++) {
-      if (items[i].isCheckable && !checkedList[i]) return false;
-    }
-    return true;
-  }
-
-  /// Vérifie si une section est considérée comme complète.
-  bool _isSectionComplete(int sectionIdx, ChecklistSection section) {
-    if (section.items != null) {
-      return _isListComplete("$sectionIdx", section.items);
-    }
-    if (section.subSections != null) {
-      for (int i = 0; i < section.subSections!.length; i++) {
-        if (_isListComplete("${sectionIdx}_$i", section.subSections![i].items)) return true;
-      }
-    }
-    return false;
-  }
-
-  /// Défilement automatique vers la section spécifiée.
-  void _scrollToIndex(int index) {
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(index * 56.0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final checklist = aircraftChecklists[widget.planeName] ?? [];
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Check-list ${widget.planeName}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => setState(() {
-              _checkedItems.clear();
-              _expandedIndex = 0;
-              _expandedSubIndex = -1;
-              _scrollToIndex(0);
-            }),
-            tooltip: 'Réinitialiser',
-          )
-        ],
-      ),
-      body: checklist.isEmpty
-          ? const Center(child: Text('Aucune check-list disponible.'))
-          : ListView.builder(
-              controller: _scrollController,
-              itemCount: checklist.length,
-              itemBuilder: (context, sectionIdx) {
-                final section = checklist[sectionIdx];
-                final isComplete = _isSectionComplete(sectionIdx, section);
-                final isOpen = _expandedIndex == sectionIdx;
-
-                Color titleColor = Colors.blue;
-                if (isOpen) {
-                  titleColor = Colors.purple;
-                } else if (isComplete) {
-                  titleColor = Colors.green;
-                }
-                
-                return Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
-                    // La clé dépend de _expandedIndex : elle change uniquement quand on change de section,
-                    // forçant ainsi la fermeture de l'ancienne et l'ouverture de la nouvelle.
-                    key: ValueKey('outer_${sectionIdx}_$_expandedIndex'),
-                    initiallyExpanded: isOpen,
-                    onExpansionChanged: (open) {
-                      setState(() {
-                        if (open) {
-                          _expandedIndex = sectionIdx;
-                          _expandedSubIndex = -1;
-                          _scrollToIndex(sectionIdx);
-                        } else if (_expandedIndex == sectionIdx) {
-                          _expandedIndex = -1;
-                        }
-                      });
-                    },
-                    title: Text(section.title, style: TextStyle(fontWeight: FontWeight.bold, color: titleColor)),
-                    children: _buildSectionContent(section, sectionIdx, checklist),
-                  ),
-                );
-              },
-            ),
-    );
-  }
-
-  List<Widget> _buildSectionContent(ChecklistSection section, int sectionIdx, List<ChecklistSection> checklist) {
-    if (section.subSections != null) {
-      return section.subSections!.asMap().entries.map((entry) {
-        int subIdx = entry.key;
-        ChecklistSection sub = entry.value;
-        String key = "${sectionIdx}_$subIdx";
-        bool isSubComplete = _isListComplete(key, sub.items);
-        bool isSubOpen = _expandedSubIndex == subIdx;
-        
-        return Padding(
-          padding: const EdgeInsets.only(left: 16.0),
-          child: ExpansionTile(
-            // La clé change quand on change de sous-procédure ou de section parente.
-            key: ValueKey('sub_${sectionIdx}_${subIdx}_$_expandedSubIndex'),
-            initiallyExpanded: isSubOpen,
-            onExpansionChanged: (open) {
-              setState(() {
-                if (open) {
-                  _expandedSubIndex = subIdx;
-                } else if (_expandedSubIndex == subIdx) {
-                  _expandedSubIndex = -1;
-                }
-              });
-            },
-            title: Text(sub.title, style: TextStyle(
-              fontSize: 14, 
-              fontWeight: FontWeight.bold, 
-              color: isSubComplete ? Colors.green : Colors.blueGrey
-            )),
-            children: _buildItems(sub.items ?? [], key, sectionIdx, checklist, isSub: true),
-          ),
-        );
-      }).toList();
-    } else {
-      return _buildItems(section.items ?? [], "$sectionIdx", sectionIdx, checklist, isSub: false);
-    }
-  }
-
-  List<Widget> _buildItems(List<ChecklistItem> items, String key, int sectionIdx, List<ChecklistSection> checklist, {required bool isSub}) {
-    _checkedItems[key] ??= List.filled(items.length, false);
-    
-    return List.generate(items.length, (itemIdx) {
-      final item = items[itemIdx];
-      final itemStyle = TextStyle(
-        color: item.color,
-        fontWeight: item.color != null ? FontWeight.bold : FontWeight.normal,
-      );
-
-      if (!item.isCheckable) {
-        return ListTile(
-          title: Text(item.action, style: itemStyle.copyWith(fontSize: 14)),
-          subtitle: Text(item.status, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.blueGrey)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-          dense: true,
-        );
-      }
-
-      return CheckboxListTile(
-        value: _checkedItems[key]![itemIdx],
-        onChanged: (val) {
-          setState(() {
-            _checkedItems[key]![itemIdx] = val!;
-            // Si la liste (normale ou sous-procédure) est finie, on passe à la section suivante
-            if (_isListComplete(key, items)) {
-              if (_expandedIndex < checklist.length - 1) {
-                _expandedIndex++;
-                _expandedSubIndex = -1; // Réinitialise tout pour le nouveau bloc
-                _scrollToIndex(_expandedIndex);
-              } else {
-                _expandedIndex = -1;
-              }
-            }
-          });
-        },
-        title: Text(item.action, style: itemStyle),
-        subtitle: Text(item.status, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-        controlAffinity: ListTileControlAffinity.leading,
-      );
-    });
-  }
-}
+///************************** RESULTATS **************************/
 
 /// Affiche les résultats de performance calculés pour un avion spécifique.
 class PlaneResultView extends StatelessWidget {
@@ -419,6 +247,7 @@ class PlaneResultView extends StatelessWidget {
 
   const PlaneResultView({super.key, required this.planeName, this.aircraft, this.altitude, this.temp, this.mass, this.wind, required this.runwayType, required this.surfaceState});
 
+  /// Affichage des résultats calculés.
   @override
   Widget build(BuildContext context) {
     if (aircraft == null || altitude == null || temp == null || mass == null || wind == null) {
@@ -484,10 +313,11 @@ class PlaneResultView extends StatelessWidget {
     return CalculationStatus.exact;
   }
 
+  /// Affichage de la card d'avertissement en cas d'extrapolation ou d'interpolation.
   Widget _buildStatusWarning(CalculationStatus status) {
     bool isExtrapolated = status == CalculationStatus.extrapolated;
     return Container(
-      margin: const EdgeInsets.only(bottom: 8, top: 22),
+      margin: const EdgeInsets.only(bottom: 16, top: 12),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(color: isExtrapolated ? Colors.red.shade50 : Colors.orange.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: isExtrapolated ? Colors.red : Colors.orange)),
       child: Row(
@@ -500,27 +330,30 @@ class PlaneResultView extends StatelessWidget {
     );
   }
 
+  /// Affichage de la ligne des distances de roulement (décollage et atterrissage)
   Widget _buildResultRow(BuildContext context, String label, double value, Color bgColor) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 2.0),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(label, style: const TextStyle(fontSize: 13)),
-      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.black12)), child: Text('${value.toStringAsFixed(0)} m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+      Text(label, style: const TextStyle(fontSize: 13)),    /// Texte roulement
+      Container(width: 90, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4), decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.black12)), child: Text('${value.toStringAsFixed(0)} m', style: const TextStyle(fontSize: 16))),
     ]),
   );
 
+  /// Affichage de la ligne avec les 2 distances totales décollage et atterrissage (normale et majorée pour pilote standard)
   Widget _buildDualResultRow(BuildContext context, String label, double safetyValue, double tableValue, Color tableBgColor) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 2.0),
     child: Row(children: [
-      Expanded(flex: 3, child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold))),
-      Container(width: 70, padding: const EdgeInsets.symmetric(vertical: 4), decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.orange.shade200)), child: Center(child: Text('${safetyValue.toStringAsFixed(0)} m*', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepOrange)))),
-      const SizedBox(width: 8),
-      Container(width: 70, padding: const EdgeInsets.symmetric(vertical: 4), decoration: BoxDecoration(color: tableBgColor, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.black12)), child: Center(child: Text('${tableValue.toStringAsFixed(0)} m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54)))),
+      Expanded(flex: 3, child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold))),   /// Texte distance totale
+      Container(width: 90, padding: const EdgeInsets.symmetric(vertical: 4), decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.orange.shade200)), child: Center(child: Text('${safetyValue.toStringAsFixed(0)} m*', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepOrange)))),
+      const SizedBox(width: 12),
+      Container(width: 90, padding: const EdgeInsets.symmetric(vertical: 4), decoration: BoxDecoration(color: tableBgColor, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.black12)), child: Center(child: Text('${tableValue.toStringAsFixed(0)} m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54)))),
     ]),
   );
 
+  /// Affichage dela card en bas de page avec le récapitulatif des corrections appliquées
   Widget _buildInfoCard(double wfTO, double wfLD) => Card(
     color: Colors.amber.shade50,
-    child: Padding(padding: const EdgeInsets.all(12.0), child: Column(children: [
+    child: Padding(padding: const EdgeInsets.all(10.0), child: Column(children: [
       const Text('Notes et Corrections :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
       const SizedBox(height: 4),
       const Text('(*) Distance majorée de 20% (Pilote niveau standard)', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.deepOrange)),
@@ -529,4 +362,210 @@ class PlaneResultView extends StatelessWidget {
       if (surfaceState == 'Mouillée') const Text('• Piste Mouillée : +10% (Valeur estimée)', style: TextStyle(fontSize: 11, color: Colors.blueGrey, fontStyle: FontStyle.italic)),
     ])),
   );
+}
+
+
+///************************** CHECK LISTS **************************/
+
+/// Écran d'affichage dynamique des check-lists.
+class ChecklistPage extends StatefulWidget {
+  final String planeName;
+  final bool isLargeText;
+  const ChecklistPage({super.key, required this.planeName, this.isLargeText = false});
+
+  @override
+  State<ChecklistPage> createState() => _ChecklistPageState();
+}
+
+/// Gestion de l'affichage dynamique des check-lists.
+class _ChecklistPageState extends State<ChecklistPage> {
+  // Stocke l'état coché de chaque item : Map<ClePath, List<IsChecked>>
+  final Map<String, List<bool>> _checkedItems = {};
+  int _expandedIndex = 0; // Index de la section de haut niveau actuellement dépliée
+  int _expandedSubIndex = -1; // Index du sous-accordéon actuellement déplié
+  final ScrollController _scrollController = ScrollController();
+
+  /// Vérifie si une liste d'items spécifique est complète.
+  bool _isListComplete(String key, List<ChecklistItem>? items) {
+    if (items == null) return false;
+    final checkedList = _checkedItems[key];
+    if (checkedList == null) return false;
+    for (int i = 0; i < items.length; i++) {
+      if (items[i].isCheckable && !checkedList[i]) return false;
+    }
+    return true;
+  }
+
+  /// Vérifie si une section est considérée comme complète.
+  bool _isSectionComplete(int sectionIdx, ChecklistSection section) {
+    if (section.items != null) {
+      return _isListComplete("$sectionIdx", section.items);
+    }
+    if (section.subSections != null) {
+      for (int i = 0; i < section.subSections!.length; i++) {
+        if (_isListComplete("${sectionIdx}_$i", section.subSections![i].items)) return true;
+      }
+    }
+    return false;
+  }
+
+  /// Défilement automatique vers la section spécifiée.
+  void _scrollToIndex(int index) {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(index * 56.0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final checklist = aircraftChecklists[widget.planeName] ?? [];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Check-list ${widget.planeName}'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => setState(() {
+              _checkedItems.clear();
+              _expandedIndex = 0;
+              _expandedSubIndex = -1;
+              _scrollToIndex(0);
+            }),
+            tooltip: 'Réinitialiser',
+          )
+        ],
+      ),
+      body: MediaQuery(
+        // On applique également la mise à l'échelle du texte ici
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(widget.isLargeText ? 1.3 : 1.0),
+        ),
+        child: checklist.isEmpty
+            ? const Center(child: Text('Aucune check-list disponible.'))
+            : ListView.builder(
+          controller: _scrollController,
+          itemCount: checklist.length,
+          itemBuilder: (context, sectionIdx) {
+            final section = checklist[sectionIdx];
+            final isComplete = _isSectionComplete(sectionIdx, section);
+            final isOpen = _expandedIndex == sectionIdx;
+
+            Color titleColor = Colors.blue;
+            if (isOpen) {
+              titleColor = Colors.purple;
+            } else if (isComplete) {
+              titleColor = Colors.green;
+            }
+
+            return Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                // La clé dépend de _expandedIndex : elle change uniquement quand on change de section,
+                // forçant ainsi la fermeture de l'ancienne et l'ouverture de la nouvelle.
+                key: ValueKey('outer_${sectionIdx}_$_expandedIndex'),
+                initiallyExpanded: isOpen,
+                onExpansionChanged: (open) {
+                  setState(() {
+                    if (open) {
+                      _expandedIndex = sectionIdx;
+                      _expandedSubIndex = -1;
+                      _scrollToIndex(sectionIdx);
+                    } else if (_expandedIndex == sectionIdx) {
+                      _expandedIndex = -1;
+                    }
+                  });
+                },
+                title: Text(section.title, style: TextStyle(fontWeight: FontWeight.bold, color: titleColor)),
+                children: _buildSectionContent(section, sectionIdx, checklist),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildSectionContent(ChecklistSection section, int sectionIdx, List<ChecklistSection> checklist) {
+    if (section.subSections != null) {
+      return section.subSections!.asMap().entries.map((entry) {
+        int subIdx = entry.key;
+        ChecklistSection sub = entry.value;
+        String key = "${sectionIdx}_$subIdx";
+        bool isSubComplete = _isListComplete(key, sub.items);
+        bool isSubOpen = _expandedSubIndex == subIdx;
+
+        return Padding(
+          padding: const EdgeInsets.only(left: 16.0),
+          child: ExpansionTile(
+            // La clé change quand on change de sous-procédure ou de section parente.
+            key: ValueKey('sub_${sectionIdx}_${subIdx}_$_expandedSubIndex'),
+            initiallyExpanded: isSubOpen,
+            onExpansionChanged: (open) {
+              setState(() {
+                if (open) {
+                  _expandedSubIndex = subIdx;
+                } else if (_expandedSubIndex == subIdx) {
+                  _expandedSubIndex = -1;
+                }
+              });
+            },
+            title: Text(sub.title, style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isSubComplete ? Colors.green : Colors.blueGrey
+            )),
+            children: _buildItems(sub.items ?? [], key, sectionIdx, checklist, isSub: true),
+          ),
+        );
+      }).toList();
+    } else {
+      return _buildItems(section.items ?? [], "$sectionIdx", sectionIdx, checklist, isSub: false);
+    }
+  }
+
+  List<Widget> _buildItems(List<ChecklistItem> items, String key, int sectionIdx, List<ChecklistSection> checklist, {required bool isSub}) {
+    _checkedItems[key] ??= List.filled(items.length, false);
+
+    return List.generate(items.length, (itemIdx) {
+      final item = items[itemIdx];
+      final itemStyle = TextStyle(
+        color: item.color,
+        fontWeight: item.color != null ? FontWeight.bold : FontWeight.normal,
+      );
+
+      if (!item.isCheckable) {
+        return ListTile(
+          title: Text(item.action, style: itemStyle.copyWith(fontSize: 14)),
+          subtitle: Text(item.status, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.blueGrey)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+          dense: true,
+        );
+      }
+
+      return CheckboxListTile(
+        value: _checkedItems[key]![itemIdx],
+        onChanged: (val) {
+          setState(() {
+            _checkedItems[key]![itemIdx] = val!;
+            // Si la liste (normale ou sous-procédure) est finie, on passe à la section suivante
+            if (_isListComplete(key, items)) {
+              if (_expandedIndex < checklist.length - 1) {
+                _expandedIndex++;
+                _expandedSubIndex = -1; // Réinitialise tout pour le nouveau bloc
+                _scrollToIndex(_expandedIndex);
+              } else {
+                _expandedIndex = -1;
+              }
+            }
+          });
+        },
+        title: Text(item.action, style: itemStyle),
+        subtitle: Text(item.status, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+        controlAffinity: ListTileControlAffinity.leading,
+      );
+    });
+  }
 }
